@@ -14,7 +14,7 @@ Our steps:
 - Wrangling
 - Questions
 - EDA
-- Shiny Application
+- Shiny Application(https://elisa99.shinyapps.io/visualization/)
 - Conclusion
 
 This is our first time to finish a whole project during such short time and we might have limitations and shortages.
