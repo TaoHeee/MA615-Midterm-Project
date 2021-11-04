@@ -1,6 +1,6 @@
 # MA615-Midterm-Project
 Hi, this is group 1.
-Our members are Elisa Zhang, Shicong Wang, Tao He and William Zeng.
+Our members are Elisa Zhang, Shicong Wang, Tao He and William Zen.
 This is for our midterm project on MA615(FALL 2021).
 
 We have strawberry and pesticide csv file. After we cleaned and combined two data sets.We got a data frame which contains different chemical brand, different chemical type, toxicity-human/bee, toxicity level, state, year and measurements.
