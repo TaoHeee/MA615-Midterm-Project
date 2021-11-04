@@ -1,5 +1,6 @@
 # MA615-Midterm-Project
 Hi, this is group 1.
+Our members are Elisa Zhang, Shicong Wang, Tao He and William Zen.
 This is for our midterm project on MA615(FALL 2021).
 
 We have strawberry and pesticide csv files. After we cleaned and combined two data sets, we generated a data frame which contains different chemical brand, different chemical type, toxicity-human/bee, toxicity level, state, year and measurements.
@@ -14,7 +15,7 @@ Our steps:
 - Wrangling
 - Questions
 - EDA
-- Shiny Application
+- Shiny Application(https://elisa99.shinyapps.io/visualization/)
 - Conclusion
 
 This is our first time to finish a whole project during such short time and we might have limitations and shortages.

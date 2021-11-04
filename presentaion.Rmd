@@ -1,0 +1,334 @@
+---
+title: "Strawberry, Status, State, Toxicity"
+author: "Group 1: Will, Zhihui, Shicong, Tao He"
+date: "11/1/2021"
+output: 
+  revealjs::revealjs_presentation:
+    theme: serif
+    highlight: pygments
+    self_contained: false
+    reveal_options:
+      slideNumber: true
+      previewLinks: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(comment = NA, echo = FALSE, message = FALSE, 
+                      warning = FALSE, margin = FALSE)
+pacman::p_load("ggplot2","revealjs","dplyr","tidyverse","magrittr",
+               "hrbrthemes","viridis","corrplot","usmap","fmsb", "shiny")
+
+library(shiny)
+library(dplyr)
+library(plotly)
+library(shinydashboard)
+library(RColorBrewer)
+library(maps)
+library(tigris)
+library(leaflet)
+library(stringr)
+options(tigris_use_cache = TRUE)
+```
+
+# Introduction
+<short>
+
+- Organic/chemical data by state
+
+- Which state used the most chemicals
+
+- Toxicity to humans/bees
+    + Carcinogen, hormone disruptor, neurotoxin, development
+</short>
+
+
+# Cleaning And Wrangle
+<short>
+
+- Cleaning the two data sets separately
+
+- Normalization: use uppercase letter for value in chemical names
+
+- Inner join the two data sets using chemical
+</short>
+
+## Details
+<short>
+
+<body style="color:DodgerBlue;">- Strawberry:</body> 
+  - Remove meaningless columns
+  - Separate Data.Item in order to get measurements
+  - Remove , and (D), (Z), (NA) in value columns, convert it to numeric
+  - Substitute space using underscore in chemical names
+
+<body style="color:DodgerBlue;">- Pesticides:</body>
+  - Fill the missing values with unknown
+  - Add the chemicals that are in strawberries, not in pesticide
+  - New column: toxicity level to bees/human, 0: no info, 1: harmful to bees/human
+</short>
+
+```{r}
+straw <- read.csv("strawb.csv", header = TRUE)
+```
+
+## Date Frame
+
+
+column names       | description
+-------------------|------------------------------------------------------
+chemical           | different chemical brands
+chemical type      | different types of chemicals
+toxicity-human/bee | whether the chemical has a toxicity to humans or bees
+toxicity level     | "HIGH", "MODERATE", "SLIGHT", "UNKNOWN"...
+state              | the states who plant strawberries
+year               | from 2016 to 2019
+measurements       | by using different units, like weight, sales,...
+
+
+
+# Organic and Chemical
+<short>
+</short>
+
+```{r}
+# Chemical map
+all_states <- map_data("state")  
+ 
+p <- ggplot()
+p <- p + geom_polygon(data=all_states, aes(x=long, y=lat, group = group),colour="gray", fill="#F4EDCA")
+
+q <- filter(all_states, region == "california")
+m<-  filter(all_states, region == "florida")
+l<- filter(all_states, region == "oregon")
+n<- filter(all_states, region == "washington")
+s<- filter(all_states, region == "new york")
+t<- filter(all_states, region == "north carolina")
+
+
+par(mfrow=c(1,2))
+p + geom_polygon(data = q, aes(x=long, y=lat, group = group),fill="#C3D7A4") +
+    geom_polygon(data = m, aes(x=long, y=lat, group = group),fill="#56B4E9")+
+    geom_polygon(data = l, aes(x=long, y=lat, group = group),fill="#CC99FF")+
+    geom_polygon(data = n, aes(x=long, y=lat, group = group),fill="#FF9999")+
+    labs(title="Map of strawberries with chemical")
+```
+
+## Organic Map
+
+```{r}
+p + geom_polygon(data = s, aes(x=long, y=lat, group = group),fill="#56B4E9")+
+    geom_polygon(data = t, aes(x=long, y=lat, group = group),fill="#CC99FF")+
+    labs(title="Map of organic strawberries")
+```
+
+# Chemical Usage 
+<short>
+
+- Select the chemical application measured in LB in the table.
+
+</short>
+```{r}
+# density map 
+measure_LB <- straw %>%
+  filter(measurements == ' APPLICATIONS ,  MEASURED IN LB' & value>0)
+
+measure_LB$value_log<- log(measure_LB$value)
+plot_usmap(data = measure_LB, values = "value_log", color = "blue") + 
+  scale_fill_continuous(low = "white", high = "blue", name = "Chemical Use by State", label = scales::comma) + 
+  labs(title = "Chemical use ranking in four states", subtitle = "APPLICATIONS,MEASURED IN LB") +
+  theme(legend.position = "right")
+```
+
+## Chemical Usage By Chemical Types
+<short>
+
+- Violin plots : witness the distribution of usage amount.
+
+</short>
+
+```{r}
+# one for trend, one for distribution
+
+# line chart, box plot
+# violin chart
+measure_LB <- straw %>%
+  filter(measurements == ' APPLICATIONS ,  MEASURED IN LB' & value>0)
+
+measure_LB %>%
+  ggplot(aes(x=type, y=log(value), fill=type)) +
+    geom_violin() +
+    scale_fill_viridis(discrete = TRUE, alpha=0.6, option="B") +
+    theme_ipsum() +
+    theme(
+      legend.position="none",
+      plot.title = element_text(size=11)
+    ) +
+    ggtitle("Violin chart") +
+    xlab("")+
+    ylab("Chemical Application,Measured in LB")
+```
+
+## Chemical Usage By Types In States
+
+```{r}
+z<- straw %>%
+  count(Year, type, state)
+
+ggplot(data = z,mapping = aes(x = Year, y = n, color=type)) +
+  geom_point() +
+  geom_smooth(method = 'loess',formula=y~x)+
+  facet_grid(~state)
+```
+
+
+## Chemical Usage In Three Dimensions
+<short>
+
+- Let's combine three dimensions into one plot.
+
+</short>
+
+
+```{r}
+measure_LB_year <- straw %>%
+  filter(measurements == ' APPLICATIONS ,  MEASURED IN LB / ACRE / YEAR' & value>0)
+
+ggplot(data = measure_LB_year,mapping = aes(x = as.factor(Year), y = log(value), color=type)) +
+  geom_point() +
+  geom_smooth()+
+  xlab("Year")+
+  ylab("Chemical Application,Measured in LB /ACRE/ YEAR") +
+  facet_grid( type~state )
+
+```
+
+# Toxicity 
+
+<short>- What are the factors that influence the choice of each state? 
+  
+  - Toxicity level
+  
+    - Humans(carcinogen, hormone disruption, Neurotoxins, 
+           Developmental Or Reproductive Toxins)
+  
+    - Bees
+    
+  - Other factors
+    
+  - Question: Do people prefer to use the more toxic chemicals or the less toxic chemicals on different types of chemicals?</short>
+
+## By Carcinogen
+
+```{r}
+par(mfrow = c(2,2))
+straw_1 <- straw %>%
+  filter(measurements %in% ' APPLICATIONS ,  MEASURED IN LB')
+
+ggplot(straw_1) + 
+  geom_bar(aes(x = type, fill = carcinogen), position = "fill")
+
+```
+
+
+## By Hormone Disruption
+
+```{r}
+ggplot(straw_1) + 
+  geom_bar(aes(x = type, fill = hormone_disruptor), position = "fill")
+```
+
+## By Neurotoxins
+
+```{r}
+ggplot(straw_1) + 
+  geom_bar(aes(x = type, fill = neurotoxins), position = "fill")
+```
+
+
+## By Developmental Or Reproductive Toxins
+
+```{r}
+ggplot(straw_1) + 
+  geom_bar(aes(x = type, fill = developmental_or_reproductive_toxins), position = "fill")
+```
+
+# Toxicity To Bees 
+
+```{r}
+ggplot(straw_1) + 
+  geom_bar(aes(x = type, fill = bee_toxins), position = "fill")
+```
+
+## The Whole Toxicity Level
+
+<short>
+
+- The area is the total toxicity level.
+
+- In the insecticides people prefer to use more toxic chemicals.</short>
+```{r}
+# change the content of every toxicity level column
+# build new variable
+straw_1$Bee <- ifelse(straw_1$bee_toxins == "HIGH", 3, 
+                    ifelse(straw_1$bee_toxins == "MODERATE", 2,
+                           ifelse(straw_1$bee_toxins == "SLIGHT", 1, 0)))
+straw_1$Carcinogen <- ifelse(straw_1$carcinogen== "KNOW", 3, 
+                           ifelse(straw_1$carcinogen == "POSSIBLE", 2,
+                                  ifelse(straw_1$carcinogen == "PROBABLE", 1, 0)))
+straw_1$Hormone <- ifelse(straw_1$hormone_disruptor == "SUSPECTED", 1, 0)
+straw_1$Developmental_or_reproductive_toxins <- ifelse(straw_1$developmental_or_reproductive_toxins == "PRESENT", 1, 0)
+straw_1$Neurotoxins <- ifelse(straw_1$neurotoxins =="PRESENT", 1, 0)
+
+# sum columns above
+Type <- c("FUNGICIDE", "HERBICIDE", "INSECTICIDE", "OTHER" )
+bee <- tapply(straw_1$Bee, straw_1$type, sum)
+car <- tapply(straw_1$Carcinogen, straw_1$type, sum)
+hor_disr <- tapply(straw_1$Hormone, straw_1$type, sum)
+neu <- tapply(straw_1$Neurotoxins, straw_1$type, sum)
+DRT <- tapply(straw_1$Developmental_or_reproductive_toxins, straw_1$type, sum)
+# Custom the radar Chart
+max_min <- data.frame(bee = c(180,0), car = c(180,0), hor_disr = c(180,0),
+                      neu = c(180,0), DRT = c(180,0))
+rownames(max_min) <- c("Max","Min")
+data <- data.frame(bee, car, hor_disr, neu, DRT)
+df <- rbind(max_min, data)
+# plot a radar chart 
+colors_border=c( rgb(0.1,0.5,0.5,0.9), rgb(0.8,0.3,0.5,0.9) , rgb(0.7,0.5,0.3,0.9) )
+colors_in=c( rgb(0.1,0.3,0.5,0.7), rgb(0.6,0.1,0.2,0.4) , rgb(0.9,0.5,0.1,0.4) )
+radarchart( df  , axistype=1 , 
+    #custom polygon
+    pcol=colors_border , pfcol=colors_in , plwd=4 , plty=1,
+    #custom the grid
+    cglcol="grey", cglty=1, axislabcol="grey", caxislabels=seq(0,180,45), cglwd=0.8,
+    #custom labels
+    vlcex=0.8 
+    )
+
+
+# Add a legend
+legend(x=1.2, y=1.2, legend = rownames(df[-c(1,4),]), bty = "n", pch=20 , col=colors_in , text.col = "grey", cex=1.2, pt.cex=3)
+```
+
+# Limitation And Improvement:
+<short>
+  
+  - Missing data
+    
+  - No more additional data
+  
+  - Taking more data from website to explore this question later</short>
+
+# Shiny Application
+
+[Link for shiny](https://elisa99.shinyapps.io/visualization/)
+
+# Conclusion
+<short>
+  
+  - California > Florida > Oregon > Washington 
+    
+  - Further exploration of California’s fungicide and insecticide
+  
+  - Farms prefer more toxic</short>
+
+
