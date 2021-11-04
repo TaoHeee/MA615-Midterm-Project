@@ -3,7 +3,7 @@ Hi, this is group 1.
 Our members are Elisa Zhang, Shicong Wang, Tao He and William Zen.
 This is for our midterm project on MA615(FALL 2021).
 
-We have strawberry and pesticide csv file. After we cleaned and combined two data sets.We got a data frame which contains different chemical brand, different chemical type, toxicity-human/bee, toxicity level, state, year and measurements.
+We have strawberry and pesticide csv files. After we cleaned and combined two data sets, we generated a data frame which contains different chemical brand, different chemical type, toxicity-human/bee, toxicity level, state, year and measurements.
 
 After we got the data frame, we have three questions basic on it.
 - Which state plants strawberries by letting them grow up organically or using the chemicals.
@@ -19,5 +19,6 @@ Our steps:
 - Conclusion
 
 This is our first time to finish a whole project during such short time and we might have limitations and shortages.
+
 
 Thank you!:)
