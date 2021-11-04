@@ -1,0 +1,305 @@
+---
+title: "Strawberry, Status, State, Toxicity"
+author: 'Group 1: Will, Zhihui, Shicong, Tao He'
+date: "11/1/2021"
+output:
+  pdf_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(comment = NA, echo = FALSE, message = FALSE, 
+                      warning = FALSE, margin = FALSE)
+pacman::p_load("ggplot2","revealjs","dplyr","tidyverse","magrittr",
+               "hrbrthemes","viridis","corrplot","usmap","fmsb", "shiny")
+
+library(shiny)
+library(dplyr)
+library(plotly)
+library(shinydashboard)
+library(RColorBrewer)
+library(maps)
+library(tigris)
+library(leaflet)
+library(stringr)
+options(tigris_use_cache = TRUE)
+```
+
+# Abstract
+
+In this project, our focus is on strawberry data set that comes from US Department of Agriculture National Agricultural Statistics Service. We combine this data set with the toxicity levels of the chemical they used. After cleaning and wrangling the data, we do the exploratory data analysis to explore the data and address our question - whether states have preferences when applying pesticides on strawberry farming. 
+
+# Method
+
+The project consists of three parts:
+
+1. Data wrangling and cleaning
+
+2. Exploratory data analysis
+
+3. Shiny App
+
+# Data Cleaning and Wrangling
+
+Basically, for data cleaning and wrangling, we divide into three parts. First, we clean the two data sets separately. Then, we do the normalization to make sure that the common column in two data sets is encoding in the same way. Finally, we inner join the two data sets to generate the final data we will use in our further analysis. And below are the details about how we tidy up our data. 
+
+### Strawberry data set
+1. Remove columns without any information. 
+2. Split columns that contain multiple values
+3. Use 0 to fill up the missing value in value column
+4. Substitute space in strings with underscore and uppercase the chemical names
+5. Rename the columns to make them readable
+
+### Pesticide data set
+1. Add pesticides that are in the strawberry data set but not in the pesticide data set
+2. Substitute space in strings with underscore and uppercase the chemical names
+3. Fill up missing value as unknown
+
+# Date Frame
+
+column names       | description
+-------------------|------------------------------------------------------
+chemical           | different chemical brands
+chemical type      | different types of chemicals
+toxicity-human/bee | whether the chemical has a toxicity to humans or bees
+toxicity level     | "HIGH", "MODERATE", "SLIGHT", "UNKNOWN"...
+state              | the states who plant strawberries
+year               | from 2016 to 2019
+measurements       | by using different units, like weight, sales,...
+
+Note that measurements can be TREATED, MEASURED IN PCT OF AREA BEARING; APPLICATIONS, MEASURED IN LB; APPLICATIONS, MEASURED IN LB / ACRE / APPLICATION; APPLICATIONS, MEASURED IN NUMBER or APPLICATIONS, MEASURED IN LB / ACRE / YEAR.
+
+
+# Exploratory Data Analysis
+
+```{r}
+straw <- read.csv("strawb.csv", header = TRUE)
+```
+
+
+## Organic and Chemical
+
+First, we look at the organic strawberries versus strawberries with chemicals. We find that four states used chemicals in strawberry cultivation, while two states did not use them. We put our emphasis on the strawberries with chemicals in our further analysis. 
+
+### Map: Straberry with chemical
+
+
+```{r,fig.align='center'}
+# Chemical map
+all_states <- map_data("state")  
+ 
+p <- ggplot()
+p <- p + geom_polygon(data=all_states, aes(x=long, y=lat, group = group),colour="gray", fill="#F4EDCA")
+
+q <- filter(all_states, region == "california")
+m<-  filter(all_states, region == "florida")
+l<- filter(all_states, region == "oregon")
+n<- filter(all_states, region == "washington")
+s<- filter(all_states, region == "new york")
+t<- filter(all_states, region == "north carolina")
+
+
+par(mfrow=c(1,2))
+p + geom_polygon(data = q, aes(x=long, y=lat, group = group),fill="#C3D7A4") +
+    geom_polygon(data = m, aes(x=long, y=lat, group = group),fill="#56B4E9")+
+    geom_polygon(data = l, aes(x=long, y=lat, group = group),fill="#CC99FF")+
+    geom_polygon(data = n, aes(x=long, y=lat, group = group),fill="#FF9999")+
+    labs(title="Map of strawberries with chemical")
+```
+
+### Organic Strawberry
+
+```{r,fig.align='center'}
+p + geom_polygon(data = s, aes(x=long, y=lat, group = group),fill="#56B4E9")+
+    geom_polygon(data = t, aes(x=long, y=lat, group = group),fill="#CC99FF")+
+    labs(title="Map of organic strawberries")
+```
+
+## The Usage of Chemical 
+
+We measure the usage of chemistry in two dimensions: the difference of the dosage across states, and the difference of the dosage among chemical types. We choose the chemical application measured in LB in the data set. For the comparison of chemical dosages between different states, we compare them by the shade of color. The darker color represents more chemical usage. 
+
+```{r,fig.align='center'}
+# density map 
+measure_LB <- straw %>%
+  filter(measurements == ' APPLICATIONS ,  MEASURED IN LB' & value>0)
+
+measure_LB$value_log<- log(measure_LB$value)
+plot_usmap(data = measure_LB, values = "value_log", color = "blue") + 
+  scale_fill_continuous(low = "white", high = "blue", name = "Chemical Use by State", label = scales::comma) + 
+  labs(title = "Chemical use ranking in four states", subtitle = "APPLICATIONS,MEASURED IN LB") +
+  theme(legend.position = "right")
+```
+
+### Chemical Usage By Chemical Types
+
+```{r,fig.align='center'}
+# one for trend, one for distribution
+
+# line chart, box plot
+# violin chart
+measure_LB <- straw %>%
+  filter(measurements == ' APPLICATIONS ,  MEASURED IN LB' & value>0)
+
+measure_LB %>%
+  ggplot(aes(x=type, y=log(value), fill=type)) +
+    geom_violin() +
+    scale_fill_viridis(discrete = TRUE, alpha=0.6, option="B") +
+    theme(
+      legend.position="none",
+      plot.title = element_text(size=11)
+    ) +
+    ggtitle("Violin chart") +
+    xlab("")+
+    ylab("Chemical Application,Measured in LB")
+```
+
+We use violin plots to witness the distribution of usage amounts when comparing different chemical types. The wider shape shows more points are distributed in this range. And the higher shape in the plot represents the range of the data points is larger.
+
+
+### Chemical Usage By Types In States
+
+```{r,fig.align='center'}
+z<- straw %>%
+  count(Year, type, state)
+
+ggplot(data = z,mapping = aes(x = Year, y = n, color=type)) +
+  geom_point() +
+  geom_smooth(method = 'loess',formula=y~x)+
+  facet_grid(~state)
+```
+
+To address our question - whether it exists preference on the type of chemical among states, we combine the two dimensions of state and type in the plot blow. As the plot shows, the preference does exist.
+
+
+### Chemical Usage in Three Dimensions
+
+```{r,fig.align='center'}
+measure_LB_year <- straw %>%
+  filter(measurements == ' APPLICATIONS ,  MEASURED IN LB / ACRE / YEAR' & value>0)
+
+ggplot(data = measure_LB_year,mapping = aes(x = as.factor(Year), y = log(value), color=type)) +
+  geom_point() +
+  geom_smooth()+
+  xlab("Year")+
+  ylab("Chemical Application,Measured in LB /ACRE/ YEAR") +
+  facet_grid( type~state )
+```
+
+Then we combine three dimensions(time, states, chemical types) into one plot. When we compare horizontally, we can see the chemical usage between different states.When comparing vertically, we can see different chemical dosages in the same state. We also find that the annual chemical usage in each state remains stable based on the data we have. Besides,to show the plot in a more intuitively way, we rescale the y axis by log10. 
+
+
+## Toxicity 
+
+After we observed the preference for each state, we ask ourselves what are factors might influence the choice of each state? We used five bar charts to explore whether people prefer to use the more toxic chemicals or the less toxic chemicals on different types of chemicals? Besides, we measured the toxicity level into two parts, one is for humans, the other is for bees. The toxicity to humans can be measured by four dimensions, which is Carcinogen, Hormone Disruption, Neurotoxins, Developmental Or Reproductive Toxins, respectively.
+
+
+
+### The Toxicity to Humans
+
+```{r,fig.align='center'}
+par(mfrow = c(2, 2))
+
+straw_1 <- straw %>%
+  filter(measurements %in% ' APPLICATIONS ,  MEASURED IN LB')
+
+ggplot(straw_1) + 
+  geom_bar(aes(x = type, fill = carcinogen), position = "fill")
+
+
+ggplot(straw_1) + 
+  geom_bar(aes(x = type, fill = hormone_disruptor), position = "fill")
+
+
+ggplot(straw_1) + 
+  geom_bar(aes(x = type, fill = neurotoxins), position = "fill")
+
+
+
+ggplot(straw_1) + 
+  geom_bar(aes(x = type, fill = developmental_or_reproductive_toxins), position = "fill")
+
+```
+
+Figure.toxicity of Carcinogen, the majority area is the missing data, so we can 
+only focus on the fungicides and the insecticides. On these two types of 
+chemicals, farmers are more likely to use possible toxic.
+
+Figure.toxicity of Hormone Disruption, Neurotoxins and Developmental Or Reproductive Toxins, the lake blue area is unknown data, we can only have some information about the type of fungicides and insecticides. If we take more data, we might know the frequency of that the farmers used which toxicity level of the chemicals. 
+
+
+### The Toxicity to Bees
+
+```{r,fig.align='center'}
+ggplot(straw_1) + 
+  geom_bar(aes(x = type, fill = bee_toxins), position = "fill")
+```
+
+Figure.toxicity to bees, we can easily observe that when the farmers use the fungicide, they would like to use the slightly toxic chemicals, and when the farmers use the insecticides, they prefer to use highly toxic chemicals.
+
+### The Whole Toxicity Level
+
+```{r,fig.align='center'}
+# change the content of every toxicity level column
+# build new variable
+straw_1$Bee <- ifelse(straw_1$bee_toxins == "HIGH", 3, 
+                    ifelse(straw_1$bee_toxins == "MODERATE", 2,
+                           ifelse(straw_1$bee_toxins == "SLIGHT", 1, 0)))
+straw_1$Carcinogen <- ifelse(straw_1$carcinogen== "KNOW", 3, 
+                           ifelse(straw_1$carcinogen == "POSSIBLE", 2,
+                                  ifelse(straw_1$carcinogen == "PROBABLE", 1, 0)))
+straw_1$Hormone <- ifelse(straw_1$hormone_disruptor == "SUSPECTED", 1, 0)
+straw_1$Developmental_or_reproductive_toxins <- ifelse(straw_1$developmental_or_reproductive_toxins == "PRESENT", 1, 0)
+straw_1$Neurotoxins <- ifelse(straw_1$neurotoxins =="PRESENT", 1, 0)
+
+# sum columns above
+Type <- c("FUNGICIDE", "HERBICIDE", "INSECTICIDE", "OTHER" )
+bee <- tapply(straw_1$Bee, straw_1$type, sum)
+car <- tapply(straw_1$Carcinogen, straw_1$type, sum)
+hor_disr <- tapply(straw_1$Hormone, straw_1$type, sum)
+neu <- tapply(straw_1$Neurotoxins, straw_1$type, sum)
+DRT <- tapply(straw_1$Developmental_or_reproductive_toxins, straw_1$type, sum)
+# Custom the radar Chart
+max_min <- data.frame(bee = c(180,0), car = c(180,0), hor_disr = c(180,0),
+                      neu = c(180,0), DRT = c(180,0))
+rownames(max_min) <- c("Max","Min")
+data <- data.frame(bee, car, hor_disr, neu, DRT)
+df <- rbind(max_min, data)
+# plot a radar chart 
+colors_border=c( rgb(0.1,0.5,0.5,0.9), rgb(0.8,0.3,0.5,0.9) , rgb(0.7,0.5,0.3,0.9) )
+colors_in=c( rgb(0.1,0.3,0.5,0.7), rgb(0.6,0.1,0.2,0.4) , rgb(0.9,0.5,0.1,0.4) )
+radarchart( df  , axistype=1 , 
+    #custom polygon
+    pcol=colors_border , pfcol=colors_in , plwd=4 , plty=1,
+    #custom the grid
+    cglcol="grey", cglty=1, axislabcol="grey", caxislabels=seq(0,180,45), cglwd=0.8,
+    #custom labels
+    vlcex=0.8 
+    )
+
+
+# Add a legend
+legend(x=1.2, y=1.2, legend = rownames(df[-c(1,4),]), bty = "n", pch=20 , col=colors_in , text.col = "grey", cex=1.2, pt.cex=3)
+```
+The radar plot below whose area represents the total toxicity level. As the plot shows, insecticides have the largest area. We may think that when planting strawberries, farmers tend to use more toxic insecticides.
+
+
+# Shiny App
+
+Here is the link for our shiny dashboard: [link](https://elisa99.shinyapps.io/visualization/)
+
+# Result
+
+The order of most chemicals used is California, Florida, Oregon, Washington. We also see that more toxic chemicals are preferred when considering specific type of chemicals or state. 
+
+# Limitations and Improvements
+
+There is a lot of missing data. And we are not sure if there is a bias when collecting the data. Therefore we could not make too much inference about chemicals in strawberry based on the data we have. We would like the get more data for future exploration if possible. According to our exploratory analysis process, we find that farmers may not always choose harmless or less harmful pesticides. Thus, based on the existing data, we can only say that the choice of type of chemical and its toxicity level might be varied by states. What's more, we may focus on the chemical usage in California further as it is one of the largest strawberries produce in United States. 
+
+# References
+
+- [Leaflet for R](https://rstudio.github.io/leaflet/map_widget.html)
+- [Shiny Dashboard](https://rstudio.github.io/shinydashboard/index.html)
+- Lecture notes from MA 615
+- Data comes from the US Department of Agriculture National Agricultural Statistics Service
+
