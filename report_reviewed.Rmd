@@ -41,7 +41,7 @@ The project consists of three parts:
 
 # Data Cleaning and Wrangling
 
-Basically, for data cleaning and wrangling, we divide into three parts. First, we clean the two data sets separately. Then, we do the normalization to make sure that the common column in two data sets is encoding in the same way. Then we inner join the two data sets to generate the final data we will use in our further analysis. And below are the details about how we tidy up our data. 
+Basically, for data cleaning and wrangling, we divide into three parts. First, we clean the two data sets separately. Then, we do the normalization to make sure that the common column in two data sets is encoding in the same way. Finally, we inner join the two data sets to generate the final data we will use in our further analysis. And below are the details about how we tidy up our data. 
 
 ### Strawberry data set
 1. Remove columns without any information. 
@@ -70,7 +70,7 @@ measurements       | by using different units, like weight, sales,...
 Note that measurements can be TREATED, MEASURED IN PCT OF AREA BEARING; APPLICATIONS, MEASURED IN LB; APPLICATIONS, MEASURED IN LB / ACRE / APPLICATION; APPLICATIONS, MEASURED IN NUMBER or APPLICATIONS, MEASURED IN LB / ACRE / YEAR.
 
 
-# Exploratory data analysis
+# Exploratory Data Analysis
 
 ```{r}
 straw <- read.csv("strawb.csv", header = TRUE)
@@ -172,7 +172,7 @@ ggplot(data = z,mapping = aes(x = Year, y = n, color=type)) +
 To address our question - whether it exists preference on the type of chemical among states, we combine the two dimensions of state and type in the plot blow. As the plot shows, the preference does exist.
 
 
-### Chemical Usage In Three Dimensions
+### Chemical Usage in Three Dimensions
 
 ```{r,fig.align='center'}
 measure_LB_year <- straw %>%
@@ -195,7 +195,7 @@ After we observed the preference for each state, we ask ourselves what are facto
 
 
 
-### The Toxicity To Humans
+### The Toxicity to Humans
 
 ```{r,fig.align='center'}
 par(mfrow = c(2, 2))
@@ -228,7 +228,7 @@ chemicals, farmers are more likely to use possible toxic.
 Figure.toxicity of Hormone Disruption, Neurotoxins and Developmental Or Reproductive Toxins, the lake blue area is unknown data, we can only have some information about the type of fungicides and insecticides. If we take more data, we might know the frequency of that the farmers used which toxicity level of the chemicals. 
 
 
-### The Toxicity To Bees
+### The Toxicity to Bees
 
 ```{r,fig.align='center'}
 ggplot(straw_1) + 
@@ -292,7 +292,7 @@ Here is the link for our shiny dashboard: [link](https://elisa99.shinyapps.io/vi
 
 The order of most chemicals used is California, Florida, Oregon, Washington. We also see that more toxic chemicals are preferred when considering specific type of chemicals or state. 
 
-# Limitation And Improvement
+# Limitations and Improvements
 
 There is a lot of missing data. And we are not sure if there is a bias when collecting the data. Therefore we could not make too much inference about chemicals in strawberry based on the data we have. We would like the get more data for future exploration if possible. According to our exploratory analysis process, we find that farmers may not always choose harmless or less harmful pesticides. Thus, based on the existing data, we can only say that the choice of type of chemical and its toxicity level might be varied by states. What's more, we may focus on the chemical usage in California further as it is one of the largest strawberries produce in United States. 
 
